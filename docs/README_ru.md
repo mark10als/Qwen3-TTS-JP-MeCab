@@ -36,7 +36,7 @@
 - **Автоматическое преобразование кандзи→кана**: Преобразование в хирагану для TTS с помощью MeCab + pyopenjtalk-plus
 - **Отображение акцента**: Просмотр чтения с маркерами `↑`（восходящий）`↓`（нисходящий）— редактируемый
 - **Пользовательский словарь**: Регистрация собственных имён в `user_dict.json` с правильным чтением и акцентом
-- **Интеграция словаря акцентов**: Автоматическое обнаружение `.dic`, скомпилированного [MeCab_accent_tool](https://github.com/daibo0501/MeCab_accent_tool)
+- **Интеграция словаря акцентов**: Автоматическое обнаружение `.dic`, скомпилированного [MeCab_accent_tool](https://github.com/mark10als/MeCab_accent_tool)
 - **Вставка тишины**: Вставка тишины после `……`（полная длительность）и `。！？`（половина длительности）
 
 ---
@@ -77,7 +77,7 @@ MeCab необходимо установить как системное при
 ### Шаг 2: Клонирование репозитория
 
 ```bash
-git clone https://github.com/daibo0501/Qwen3-TTS-JP-MeCab.git
+git clone https://github.com/mark10als/Qwen3-TTS-JP-MeCab.git
 cd Qwen3-TTS-JP-MeCab
 ```
 
@@ -132,10 +132,10 @@ python -c "import marine; print('marine: OK')"
 Вспомогательный инструмент для управления информацией об акценте собственных имён.
 
 ```bash
-git clone https://github.com/daibo0501/MeCab_accent_tool.git
+git clone https://github.com/mark10als/MeCab_accent_tool.git
 ```
 
-Подробности см. в [README MeCab_accent_tool](https://github.com/daibo0501/MeCab_accent_tool).
+Подробности см. в [README MeCab_accent_tool](https://github.com/mark10als/MeCab_accent_tool).
 
 ---
 
@@ -197,7 +197,7 @@ python launch_gui-2.py
 
 ## Интеграция с MeCab_accent_tool
 
-Когда `.dic` скомпилирован с помощью [MeCab_accent_tool](https://github.com/daibo0501/MeCab_accent_tool),  
+Когда `.dic` скомпилирован с помощью [MeCab_accent_tool](https://github.com/mark10als/MeCab_accent_tool),  
 этот репозиторий автоматически обнаруживает и использует его.
 
 ```

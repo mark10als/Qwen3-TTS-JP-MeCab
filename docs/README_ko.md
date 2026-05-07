@@ -36,7 +36,7 @@
 - **한자→가나 자동 변환**: MeCab + pyopenjtalk-plus로 TTS용 히라가나로 변환
 - **액센트 기호 표시**: `↑`（상승）`↓`（하강）로 독음 확인·편집 가능
 - **사용자 사전 지원**: `user_dict.json`에 고유명사 등록, 정확한 독음과 액센트 설정
-- **액센트 사전 통합**: [MeCab_accent_tool](https://github.com/daibo0501/MeCab_accent_tool)로 컴파일된 `.dic`를 자동 인식
+- **액센트 사전 통합**: [MeCab_accent_tool](https://github.com/mark10als/MeCab_accent_tool)로 컴파일된 `.dic`를 자동 인식
 - **묵음 삽입**: `……`에서 지정 초, `。！？`에서 절반 길이의 묵음을 삽입
 
 ---
@@ -77,7 +77,7 @@ MeCab은 시스템 수준 애플리케이션으로 별도 설치가 필요합니
 ### 단계 2: 저장소 클론
 
 ```bash
-git clone https://github.com/daibo0501/Qwen3-TTS-JP-MeCab.git
+git clone https://github.com/mark10als/Qwen3-TTS-JP-MeCab.git
 cd Qwen3-TTS-JP-MeCab
 ```
 
@@ -132,10 +132,10 @@ python -c "import marine; print('marine: OK')"
 고유명사 액센트 정보를 관리하기 위한 부속 도구입니다.
 
 ```bash
-git clone https://github.com/daibo0501/MeCab_accent_tool.git
+git clone https://github.com/mark10als/MeCab_accent_tool.git
 ```
 
-자세한 내용은 [MeCab_accent_tool README](https://github.com/daibo0501/MeCab_accent_tool)를 참조하세요.
+자세한 내용은 [MeCab_accent_tool README](https://github.com/mark10als/MeCab_accent_tool)를 참조하세요.
 
 ---
 
@@ -197,7 +197,7 @@ python launch_gui-2.py
 
 ## MeCab_accent_tool과의 연동
 
-[MeCab_accent_tool](https://github.com/daibo0501/MeCab_accent_tool)로 액센트 사전 `.dic`를 컴파일하면,  
+[MeCab_accent_tool](https://github.com/mark10als/MeCab_accent_tool)로 액센트 사전 `.dic`를 컴파일하면,  
 본 저장소가 자동으로 감지하여 사용합니다.
 
 ```

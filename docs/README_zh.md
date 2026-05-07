@@ -36,7 +36,7 @@
 - **汉字→假名自动转换**：使用 MeCab + pyopenjtalk-plus 将文本转换为 TTS 用平假名
 - **声调标记显示**：以 `↑`（升调）`↓`（降调）标记显示读音，可编辑
 - **用户词典支持**：在 `user_dict.json` 中注册专有名词，设置正确的读音和声调
-- **声调词典集成**：自动识别由 [MeCab_accent_tool](https://github.com/daibo0501/MeCab_accent_tool) 编译的 `.dic` 文件
+- **声调词典集成**：自动识别由 [MeCab_accent_tool](https://github.com/mark10als/MeCab_accent_tool) 编译的 `.dic` 文件
 - **静音插入**：`……` 后插入指定秒数的静音，`。！？` 后插入一半时长的静音
 
 ---
@@ -77,7 +77,7 @@ MeCab 需要作为系统级应用程序单独安装，与虚拟环境无关。
 ### 步骤 2：克隆仓库
 
 ```bash
-git clone https://github.com/daibo0501/Qwen3-TTS-JP-MeCab.git
+git clone https://github.com/mark10als/Qwen3-TTS-JP-MeCab.git
 cd Qwen3-TTS-JP-MeCab
 ```
 
@@ -132,10 +132,10 @@ python -c "import marine; print('marine: OK')"
 用于管理专有名词声调信息的配套工具。
 
 ```bash
-git clone https://github.com/daibo0501/MeCab_accent_tool.git
+git clone https://github.com/mark10als/MeCab_accent_tool.git
 ```
 
-详细信息请参阅 [MeCab_accent_tool README](https://github.com/daibo0501/MeCab_accent_tool)。
+详细信息请参阅 [MeCab_accent_tool README](https://github.com/mark10als/MeCab_accent_tool)。
 
 ---
 
@@ -197,7 +197,7 @@ python launch_gui-2.py
 
 ## 与 MeCab_accent_tool 的联动
 
-当 [MeCab_accent_tool](https://github.com/daibo0501/MeCab_accent_tool) 编译声调词典 `.dic` 后，  
+当 [MeCab_accent_tool](https://github.com/mark10als/MeCab_accent_tool) 编译声调词典 `.dic` 后，  
 本仓库将自动检测并使用它。
 
 ```

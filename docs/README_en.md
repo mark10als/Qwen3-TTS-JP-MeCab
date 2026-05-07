@@ -36,7 +36,7 @@
 - **Kanji → Kana conversion**: Converts to hiragana for TTS using MeCab + pyopenjtalk-plus
 - **Accent display**: View reading with `↑` (rising) `↓` (falling) markers — editable
 - **User dictionary**: Register proper nouns in `user_dict.json` with correct reading and accent
-- **Accent dictionary integration**: Auto-detects `.dic` compiled by [MeCab_accent_tool](https://github.com/daibo0501/MeCab_accent_tool)
+- **Accent dictionary integration**: Auto-detects `.dic` compiled by [MeCab_accent_tool](https://github.com/mark10als/MeCab_accent_tool)
 - **Silence insertion**: Insert silence after `……` (full duration) and `。！？` (half duration)
 
 ---
@@ -77,7 +77,7 @@ MeCab must be installed as a system-wide application, independent of the virtual
 ### Step 2: Clone the repository
 
 ```bash
-git clone https://github.com/daibo0501/Qwen3-TTS-JP-MeCab.git
+git clone https://github.com/mark10als/Qwen3-TTS-JP-MeCab.git
 cd Qwen3-TTS-JP-MeCab
 ```
 
@@ -132,10 +132,10 @@ python -c "import marine; print('marine: OK')"
 A companion tool for managing accent information for proper nouns.
 
 ```bash
-git clone https://github.com/daibo0501/MeCab_accent_tool.git
+git clone https://github.com/mark10als/MeCab_accent_tool.git
 ```
 
-See [MeCab_accent_tool README](https://github.com/daibo0501/MeCab_accent_tool) for details.
+See [MeCab_accent_tool README](https://github.com/mark10als/MeCab_accent_tool) for details.
 
 ---
 
@@ -197,7 +197,7 @@ Accent type values:
 
 ## Integration with MeCab_accent_tool
 
-When a `.dic` file is compiled by [MeCab_accent_tool](https://github.com/daibo0501/MeCab_accent_tool),  
+When a `.dic` file is compiled by [MeCab_accent_tool](https://github.com/mark10als/MeCab_accent_tool),  
 this repository automatically detects and uses it.
 
 ```

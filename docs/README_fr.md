@@ -36,7 +36,7 @@
 - **Conversion automatique kanji→kana**: Conversion en hiragana pour TTS avec MeCab + pyopenjtalk-plus
 - **Affichage de l'accent**: Afficher la lecture avec des marqueurs `↑`（montant）`↓`（descendant）— modifiable
 - **Dictionnaire utilisateur**: Enregistrement de noms propres dans `user_dict.json` avec lecture et accent corrects
-- **Intégration du dictionnaire d'accent**: Détection automatique de `.dic` compilé par [MeCab_accent_tool](https://github.com/daibo0501/MeCab_accent_tool)
+- **Intégration du dictionnaire d'accent**: Détection automatique de `.dic` compilé par [MeCab_accent_tool](https://github.com/mark10als/MeCab_accent_tool)
 - **Insertion de silence**: Silence complet après `……` et moitié après `。！？`
 
 ---
@@ -77,7 +77,7 @@ MeCab doit être installé en tant qu'application système, indépendamment de l
 ### Étape 2: Cloner le dépôt
 
 ```bash
-git clone https://github.com/daibo0501/Qwen3-TTS-JP-MeCab.git
+git clone https://github.com/mark10als/Qwen3-TTS-JP-MeCab.git
 cd Qwen3-TTS-JP-MeCab
 ```
 
@@ -132,10 +132,10 @@ python -c "import marine; print('marine: OK')"
 Outil complémentaire pour gérer les informations d'accent des noms propres.
 
 ```bash
-git clone https://github.com/daibo0501/MeCab_accent_tool.git
+git clone https://github.com/mark10als/MeCab_accent_tool.git
 ```
 
-Consultez le [README de MeCab_accent_tool](https://github.com/daibo0501/MeCab_accent_tool) pour plus de détails.
+Consultez le [README de MeCab_accent_tool](https://github.com/mark10als/MeCab_accent_tool) pour plus de détails.
 
 ---
 
@@ -197,7 +197,7 @@ Valeurs du type d'accent:
 
 ## Intégration avec MeCab_accent_tool
 
-Lorsqu'un `.dic` est compilé par [MeCab_accent_tool](https://github.com/daibo0501/MeCab_accent_tool),  
+Lorsqu'un `.dic` est compilé par [MeCab_accent_tool](https://github.com/mark10als/MeCab_accent_tool),  
 ce dépôt le détecte et l'utilise automatiquement.
 
 ```
