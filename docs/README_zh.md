@@ -1,358 +1,240 @@
 [English](README_en.md) | [日本語](../README.md) | **中文** | [한국어](README_ko.md) | [Русский](README_ru.md) | [Español](README_es.md) | [Italiano](README_it.md) | [Deutsch](README_de.md) | [Français](README_fr.md) | [Português](README_pt.md)
 
-# Qwen3-TTS-JP
+# Qwen3-TTS-JP-MeCab
 
-**Windows原生支持**的 Qwen3-TTS 多语言Web UI分支。
+> ⚠️ **本仓库仅限日语使用。**  
+> 这是基于 MeCab 的日语文本预处理专用日语分支。
 
-原版Qwen3-TTS主要面向Linux环境开发，推荐使用FlashAttention 2，但FlashAttention 2无法在Windows上运行。本分支实现了**无需WSL2或Docker，直接在Windows上运行**，并提供了完整的日语GUI本地化以及基于Whisper的自动语音转文字功能。
+---
 
-> **Mac (Apple Silicon) 用户：** 如需在Mac上获得最佳体验，请使用 **[Qwen3-TTS-Mac-GeneLab](https://github.com/hiroki-abe-58/Qwen3-TTS-Mac-GeneLab)** -- 针对Apple Silicon全面优化，支持MLX + PyTorch双引擎、8bit/4bit量化及10语言Web UI。
+## 与 Qwen3-TTS-JP 的区别
 
-### 自定义语音 -- 使用预设说话人进行语音合成
-<p align="center">
-    <img src="../assets/CustomVoice.png" width="90%"/>
-</p>
+| 功能 | [Qwen3-TTS-JP](https://github.com/hiroki-abe-58/Qwen3-TTS-JP) | **本仓库（Qwen3-TTS-JP-MeCab）** |
+|---|---|---|
+| 目标语言 | 多语言（10语言UI） | **仅限日语** |
+| 文本预处理 | 无 | **通过 MeCab + pyopenjtalk-plus 进行汉字→假名转换** |
+| 声调分析 | 无 | **显示 MeCab 词典中的声调信息** |
+| 用户词典 | 无 | **可注册专有名词的读音和声调** |
+| MeCab | 不需要 | **需要单独安装** |
+| 启动方式 | venv Python | **系统 Python（pyopenjtalk 需要）** |
+| 静音插入 | 无 | **可在 `……` 和句末标点（。！？）后插入静音** |
 
-### 语音设计 -- 描述语音特征以合成
-<p align="center">
-    <img src="../assets/VoiceDesign.png" width="90%"/>
-</p>
+---
 
-### 语音克隆 -- 从参考音频克隆语音
-<p align="center">
-    <img src="../assets/VoiceClone.png" width="90%"/>
-</p>
+## 功能特点
 
-### 设置 -- GPU / 显存 / 模型信息
-<p align="center">
-    <img src="../assets/Settings.png" width="90%"/>
-</p>
+### 继承 Qwen3-TTS-JP 的全部功能
 
-## 相关项目
+- **Windows 原生运行**：无需 WSL2/Docker，无需 FlashAttention2
+- **Custom Voice**：使用预设说话人进行语音合成
+- **Voice Design**：通过文字描述声音特征进行合成
+- **Voice Clone**：从参考音频克隆声音（附带 Whisper 自动转录）
+- **RTX 50 系列支持**：PyTorch nightly 构建（cu128）
 
-| 平台 | 仓库 | 说明 |
-|:---:|---|---|
-| Windows | **本仓库** | Windows原生支持 + 多语言Web UI |
-| macOS (Apple Silicon) | [Qwen3-TTS-Mac-GeneLab](https://github.com/hiroki-abe-58/Qwen3-TTS-Mac-GeneLab) | Apple Silicon Mac完全优化版（MLX + PyTorch 双引擎，10语言Web UI） |
+### 新增功能（日语预处理）
 
-## 特性
+- **汉字→假名自动转换**：使用 MeCab + pyopenjtalk-plus 将文本转换为 TTS 用平假名
+- **声调标记显示**：以 `↑`（升调）`↓`（降调）标记显示读音，可编辑
+- **用户词典支持**：在 `user_dict.json` 中注册专有名词，设置正确的读音和声调
+- **声调词典集成**：自动识别由 [MeCab_accent_tool](https://github.com/daibo0501/MeCab_accent_tool) 编译的 `.dic` 文件
+- **静音插入**：`……` 后插入指定秒数的静音，`。！？` 后插入一半时长的静音
 
-### Windows原生支持
-
-- **无需FlashAttention 2**：通过`--no-flash-attn`选项使用PyTorch标准的SDPA（Scaled Dot Product Attention）
-- **无需WSL2/Docker**：可直接在Windows上运行
-- **支持RTX 50系列**：包含NVIDIA Blackwell架构（sm_120）PyTorch nightly构建的安装说明
-- **避免SoX依赖**：无需SoX即可运行（会显示警告但可安全忽略）
-
-### 现代Web UI与多语言支持
-
-- **10语言UI**：日语 / English / 中文 / 한국어 / Русский / Español / Italiano / Deutsch / Français / Português -- 通过下拉菜单即时切换
-- **4标签页布局**：Custom Voice / Voice Design / Voice Clone / Settings -- 无论模型类型均可访问所有功能；未加载的模型在首次使用时自动下载
-- **GPU / 显存监控**：在设置标签页中实时查看使用情况，也可清除CUDA缓存
-- **Whisper自动转录**：自动化语音克隆时的参考音频文本输入（使用 [faster-whisper](https://github.com/SYSTRAN/faster-whisper)）
-- **Whisper模型选择**：可根据需求从5种模型中选择
-  - `tiny` - 最快、最小（39M参数）
-  - `base` - 快速（74M参数）
-  - `small` - 均衡型（244M参数）※默认
-  - `medium` - 高精度（769M参数）
-  - `large-v3` - 最高精度（1550M参数）
+---
 
 ## 系统要求
 
-- **操作系统**：Windows 10/11（原生环境，无需WSL2）
-- **GPU**：NVIDIA GPU（支持CUDA）
-  - RTX 30/40系列：使用PyTorch稳定版即可
-  - RTX 50系列（Blackwell）：需要PyTorch nightly构建（cu128）
-- **Python**：3.10及以上
-- **显存**：建议8GB以上（因模型大小而异）
+- **操作系统**：Windows 10/11（原生环境）
+- **GPU**：NVIDIA GPU（支持 CUDA）
+  - RTX 30/40 系列：使用 PyTorch 稳定版
+  - RTX 50 系列（Blackwell）：需要 PyTorch nightly（cu128）
+- **Python**：3.10 或更高
+- **显存**：建议 8GB 以上
+- **MeCab**：需要单独安装（见下文）
+
+---
 
 ## 安装
 
-### 1. 克隆仓库
+### 步骤 1：安装 MeCab（必须，单独安装）
+
+MeCab 需要作为系统级应用程序单独安装，与虚拟环境无关。
+
+1. 从以下地址下载并安装：  
+   👉 **https://github.com/ikegami-yukino/mecab/releases**  
+   （选择 `mecab-64-*.exe`，安装时字符编码选择 **UTF-8**）
+
+2. 验证安装：
+   ```cmd
+   mecab --version
+   ```
+
+3. 默认安装路径：
+   ```
+   C:\Program Files\MeCab\
+   C:\Program Files\MeCab\dic\ipadic\   ← 词典目录
+   ```
+
+### 步骤 2：克隆仓库
 
 ```bash
-git clone https://github.com/hiroki-abe-58/Qwen3-TTS-JP.git
-cd Qwen3-TTS-JP
+git clone https://github.com/daibo0501/Qwen3-TTS-JP-MeCab.git
+cd Qwen3-TTS-JP-MeCab
 ```
 
-### 2. 创建并激活虚拟环境
+### 步骤 3：创建虚拟环境并安装基础包
 
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
-```
-
-### 3. 安装依赖包
-
-```bash
 pip install -e .
 pip install faster-whisper
 ```
 
-### 4. 安装PyTorch（CUDA版）
-
-请根据您的CUDA版本进行安装。
+### 步骤 4：安装 PyTorch（CUDA 版本）
 
 ```bash
 # CUDA 12.x
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+.venv\Scripts\pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
-# RTX 50系列（sm_120）需要nightly构建
-pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
+# RTX 50 系列（sm_120）
+.venv\Scripts\pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
 ```
+
+### 步骤 5：安装日语预处理包（在系统 Python 中）
+
+> **重要**：启动器 `launch_gui-2.py` 使用系统 Python。  
+> 请将日语预处理包安装到系统 Python 中（而非 venv）。
+
+```cmd
+:: 确认系统 Python 路径
+where python
+
+:: 使用系统 Python 运行（不要激活 venv）
+python -m pip install mecab-python3
+python -m pip install pyopenjtalk-plus
+
+:: marine 需要 PYTHONUTF8=1 以避免 Windows 编码错误
+set PYTHONUTF8=1
+python -m pip install marine
+set PYTHONUTF8=
+```
+
+验证安装：
+
+```python
+python -c "import MeCab; print('MeCab: OK')"
+python -c "import pyopenjtalk; print('pyopenjtalk-plus: OK')"
+python -c "import marine; print('marine: OK')"
+```
+
+### 步骤 6：设置 MeCab_accent_tool（推荐）
+
+用于管理专有名词声调信息的配套工具。
+
+```bash
+git clone https://github.com/daibo0501/MeCab_accent_tool.git
+```
+
+详细信息请参阅 [MeCab_accent_tool README](https://github.com/daibo0501/MeCab_accent_tool)。
+
+---
 
 ## 使用方法
 
-### 启动GUI
+### 启动 GUI
 
-#### 从命令行启动
+双击 `launch_gui-2.py`，或：
 
 ```bash
-# CustomVoice模型（预设说话人）
-qwen-tts-demo Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice --ip 127.0.0.1 --port 7860 --no-flash-attn
-
-# Base模型（带语音克隆功能）
-qwen-tts-demo Qwen/Qwen3-TTS-12Hz-1.7B-Base --ip 127.0.0.1 --port 7860 --no-flash-attn
+python launch_gui-2.py
 ```
 
-在浏览器中打开 `http://127.0.0.1:7860`。
+浏览器将自动打开 `http://127.0.0.1:7860`。
 
-#### 使用批处理文件快速启动（推荐）
+> **注意**：请使用**系统 Python** 运行，而非 `.venv\Scripts\python.exe`。  
+> pyopenjtalk-plus 安装在系统 Python 中。
 
-创建如下批处理文件，双击即可启动：
+### 日语 TTS 操作步骤
 
-**run-gui.bat**（CustomVoice模型用）：
-```batch
-@echo off
-chcp 65001 >nul
-title Qwen3-TTS GUI
-cd /d "%~dp0"
-.venv\Scripts\python.exe -m qwen_tts.cli.demo Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice --ip 127.0.0.1 --port 7860 --no-flash-attn
-pause
-```
-
-**run-voice-clone.bat**（Base模型/语音克隆用）：
-```batch
-@echo off
-chcp 65001 >nul
-title Qwen3-TTS Voice Clone
-cd /d "%~dp0"
-.venv\Scripts\python.exe -m qwen_tts.cli.demo Qwen/Qwen3-TTS-12Hz-1.7B-Base --ip 127.0.0.1 --port 7860 --no-flash-attn
-pause
-```
-
-#### 高级启动器（自动端口选择与自动打开浏览器）
-
-更便捷的启动方式，可使用以下Python启动器：
-
-<details>
-<summary>launch_gui.py（点击展开）</summary>
-
-```python
-# coding=utf-8
-import socket
-import subprocess
-import sys
-import time
-import webbrowser
-import threading
-import urllib.request
-import urllib.error
-
-def find_free_port(start_port=7860, max_attempts=100):
-    """查找可用端口"""
-    for port in range(start_port, start_port + max_attempts):
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(('127.0.0.1', port))
-                return port
-        except OSError:
-            continue
-    raise RuntimeError(f"端口 {start_port}-{start_port + max_attempts} 全部被占用")
-
-def wait_for_server_and_open_browser(url, timeout=180):
-    """等待服务器启动后打开浏览器"""
-    start_time = time.time()
-    while time.time() - start_time < timeout:
-        try:
-            req = urllib.request.Request(url, method='HEAD')
-            urllib.request.urlopen(req, timeout=2)
-            webbrowser.open(url)
-            return True
-        except (urllib.error.URLError, ConnectionRefusedError, TimeoutError):
-            time.sleep(2)
-    return False
-
-def main():
-    port = find_free_port(7860)
-    url = f"http://127.0.0.1:{port}"
-    
-    threading.Thread(target=wait_for_server_and_open_browser, args=(url, 180), daemon=True).start()
-    
-    subprocess.run([
-        sys.executable, "-m", "qwen_tts.cli.demo",
-        "Qwen/Qwen3-TTS-12Hz-1.7B-Base",  # 或 CustomVoice
-        "--ip", "127.0.0.1",
-        "--port", str(port),
-        "--no-flash-attn"
-    ])
-
-if __name__ == "__main__":
-    main()
-```
-
-</details>
-
-功能：
-- **自动端口选择**：若7860被占用，自动检测可用端口
-- **自动打开浏览器**：检测服务器启动完成后自动打开浏览器
-- **字符编码修复**：UTF-8编码支持
-
-### 语音克隆步骤
-
-1. 在"参考音频"中上传音频文件
-2. 在"Whisper模型"中选择模型（首次下载可能需要一些时间）
-3. 点击"自动转录"按钮
-4. 转录结果将自动填入"参考音频文本"
+1. 打开 Voice Clone / Custom Voice / Voice Design 标签页
+2. 在"合成文本"中输入日语文本
+3. 检测到日语后，**"MeCab 预处理"**复选框自动启用并勾选
+4. 点击**"转换与分析"**
+   - "转换后文本"：显示 TTS 使用的平假名读音（可编辑）
+   - "带声调标记的读音"：显示带 `↑`/`↓` 标记的读音（可编辑）
 5. 根据需要编辑文本
-6. 输入"待合成文本"
-7. 点击"生成音频"
+6. 点击**"生成音频"**
 
-### Windows原生支持详情
+### 静音插入功能
 
-本分支通过以下措施实现了Windows原生运行：
+| 符号 | 静音时长 |
+|---|---|
+| `……`（省略号） | 滑块设定值（秒） |
+| `。` `！` `？` | 滑块设定值 × 0.5（秒） |
 
-| 问题 | 原版 | 本分支的解决方案 |
-|------|------|-----------------|
-| FlashAttention 2 | 仅限Linux，无法在Windows上构建 | 通过`--no-flash-attn`选项使用SDPA |
-| SoX依赖 | 假定已安装 | 无需安装即可运行（警告可忽略） |
-| RTX 50系列 | 不支持 | 包含nightly构建安装说明 |
-| 环境搭建 | conda（面向Linux） | venv（Windows标准） |
+通过**"静音时长"**滑块（0～3 秒）进行调整。
 
-**注意**：`--no-flash-attn`选项是必需的。缺少此选项将导致FlashAttention 2导入错误，无法启动。
+### 用户词典设置
 
-## Windows原生环境搭建详情
+在 `user_dict.json` 中注册专有名词：
 
-### 已解决的技术问题
-
-在本分支的开发过程中，以下Windows特有的问题已被识别并解决：
-
-#### 1. RTX 50系列（Blackwell/sm_120）的CUDA支持
-
-**问题**：PyTorch稳定版不支持RTX 5090等最新GPU（sm_120）
-
-```
-RuntimeError: CUDA error: no kernel image is available for execution on the device
-NVIDIA GeForce RTX 5090 with CUDA capability sm_120 is not compatible with the current PyTorch installation.
+```json
+{
+  "伝の心": {
+    "reading": "でんのしん",
+    "accent_type": 3,
+    "note": "重度障障者用意思传达装置"
+  }
+}
 ```
 
-**解决方案**：使用PyTorch nightly版（cu128）
+声调型含义：
+- `0`：平板型（例：お↑かね）
+- `1`：头高型（例：あ↓たま）
+- `N`：第 N 拍后下降（例：`3` → で↑んの↓しん）
 
-```bash
-pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
-```
+---
 
-#### 2. FlashAttention 2不支持Windows
+## 与 MeCab_accent_tool 的联动
 
-**问题**：FlashAttention 2仅限Linux，无法在Windows上构建或运行
-
-```
-ImportError: FlashAttention2 has been toggled on, but it cannot be used due to the following error: 
-the package flash_attn seems to be not installed.
-```
-
-**解决方案**：通过`--no-flash-attn`选项使用PyTorch标准的SDPA（Scaled Dot Product Attention）
-
-| Attention实现 | 速度 | 内存效率 | Windows支持 |
-|--------------|------|---------|-------------|
-| flash_attention_2 | 最快 | 最优 | 不支持 |
-| sdpa (PyTorch native) | 快速 | 良好 | **支持** |
-| eager (标准) | 一般 | 一般 | 支持 |
-
-#### 3. 避免SoX依赖
-
-**问题**：部分音频处理需要SoX，但Windows默认未安装
+当 [MeCab_accent_tool](https://github.com/daibo0501/MeCab_accent_tool) 编译声调词典 `.dic` 后，  
+本仓库将自动检测并使用它。
 
 ```
-SoX could not be found!
+MeCab_accent_tool/ → 编译 → output/mecab_accent.dic
+Qwen3-TTS-JP-MeCab/ preprocess_block.py → 自动检测 mecab_accent.dic
+    → 使用 MeCab 条目第 14 个字段中的声调型
 ```
 
-**解决方案**：Qwen3-TTS的基本功能无需SoX即可运行。警告可安全忽略。
+将 `mecab_accent.dic` 放置于项目根目录即可自动识别。
 
-#### 4. 控制台字符乱码（cp932编码）
+---
 
-**问题**：在日语Windows环境中，由于cp932编码，非ASCII字符会出现乱码
+## 相关包
 
-```
-UnicodeEncodeError: 'cp932' codec can't encode character...
-```
+| 包名 | 版本 | 用途 | 安装位置 |
+|---|---|---|---|
+| [mecab-python3](https://github.com/SamuraiT/mecab-python3) | 1.0+ | MeCab Python 绑定 | 系统 Python |
+| [pyopenjtalk-plus](https://github.com/tsukumijima/pyopenjtalk) | 0.4+ | 读音转换 + 声调预测 | 系统 Python |
+| [marine](https://github.com/6gsn/marine) | 0.0.6+ | DNN 声调预测（提高精度） | 系统 Python |
+| [gradio](https://github.com/gradio-app/gradio) | 6.0+ | Web UI | venv |
+| [torch](https://pytorch.org/) | 2.4+ | 推理引擎 | venv |
+| [faster-whisper](https://github.com/SYSTRAN/faster-whisper) | - | 自动转录 | venv |
 
-**解决方案**：显式设置UTF-8编码
+---
 
-```python
-import sys
-import io
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
-```
-
-或在批处理文件中执行 `chcp 65001`
-
-#### 5. torchao兼容性警告
-
-**问题**：PyTorch nightly与torchao版本不匹配导致的警告
-
-```
-Skipping import of cpp extensions due to incompatible torch version 2.11.0.dev+cu128 for torchao version 0.15.0
-```
-
-**解决方案**：仅为警告，不影响运行。可安全忽略。
-
-#### 6. Hugging Face符号链接警告
-
-**问题**：在Windows上创建符号链接需要管理员权限
-
-```
-huggingface_hub cache-system uses symlinks by default...
-```
-
-**解决方案**：
-- 在Windows设置中启用开发者模式
-- 或忽略警告（不影响运行）
-
-### 验证脚本
-
-验证环境是否正确设置：
-
-```python
-import torch
-
-print(f"PyTorch version: {torch.__version__}")
-print(f"CUDA available: {torch.cuda.is_available()}")
-print(f"CUDA version: {torch.version.cuda}")
-print(f"GPU: {torch.cuda.get_device_name(0)}")
-print(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
-```
-
-预期输出（以RTX 5090为例）：
-
-```
-PyTorch version: 2.11.0.dev20260123+cu128
-CUDA available: True
-CUDA version: 12.8
-GPU: NVIDIA GeForce RTX 5090
-GPU Memory: 31.8 GB
-```
-
-### 故障排除
+## 故障排除
 
 | 症状 | 原因 | 解决方案 |
-|------|------|---------|
-| `no kernel image is available` | 使用了PyTorch稳定版 | 安装nightly版（cu128） |
-| `FlashAttention2 cannot be used` | FlashAttention不支持Windows | 添加`--no-flash-attn`选项 |
-| `SoX could not be found` | 未安装SoX | 可忽略（不影响基本功能） |
-| GPU未被识别 | CUDA驱动过旧 | 安装最新驱动 |
-| 字符乱码 | cp932编码 | `chcp 65001`或设置UTF-8 |
+|---|---|---|
+| `pyopenjtalk-plus 加载失败` | 未安装在系统 Python 中 | 使用系统 Python 运行 `python -m pip install pyopenjtalk-plus` |
+| 未显示 `MeCab 预处理`复选框 | MeCab 或 pyopenjtalk 未安装 | 检查步骤 1 和 5 |
+| `torch_library_impl` DLL 错误 | 使用 venv Python 启动 | 使用 `launch_gui-2.py`（系统 Python）启动 |
+| `FlashAttention2 cannot be used` | FlashAttention 不支持 Windows | 确认已设置 `--no-flash-attn` 选项 |
+| `SoX could not be found` | 未安装 SoX | 可忽略（不影响核心功能） |
+| 声调未显示 | 缺少 mecab_accent.dic | 使用 MeCab_accent_tool 编译 |
+
+---
 
 ## 许可证
 
@@ -361,47 +243,27 @@ GPU Memory: 31.8 GB
 ### 使用的开源软件
 
 | 软件 | 许可证 | 版权 |
-|------|--------|------|
+|---|---|---|
 | [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS) | Apache License 2.0 | Copyright 2026 Alibaba Cloud |
+| [Qwen3-TTS-JP](https://github.com/hiroki-abe-58/Qwen3-TTS-JP) | Apache License 2.0 | Copyright hiroki-abe-58 |
 | [faster-whisper](https://github.com/SYSTRAN/faster-whisper) | MIT License | Copyright SYSTRAN |
-| [OpenAI Whisper](https://github.com/openai/whisper) | MIT License | Copyright OpenAI |
+| [mecab-python3](https://github.com/SamuraiT/mecab-python3) | BSD License | Copyright SamuraiT |
+| [pyopenjtalk-plus](https://github.com/tsukumijima/pyopenjtalk) | MIT License | Copyright tsukumijima |
+| [marine](https://github.com/6gsn/marine) | Apache License 2.0 | Copyright 6gsn |
 
 详细信息请参阅 [NOTICE](../NOTICE) 文件。
 
+---
+
 ## 免责声明
 
-### 关于音频生成的免责声明
-
-- 本系统生成的音频由AI模型自动产生，可能包含不准确或不适当的内容
-- 生成的音频不代表开发者的观点，也不构成专业建议
-- 用户对生成音频的使用、分发或依赖承担所有风险和责任
-
-### 语音克隆警告
-
-- **未经他人同意克隆或使用其声音，可能构成对肖像权和公开权的侵犯**
-- 请仅在获得本人同意的前提下，将语音克隆功能用于合法目的
-- 严禁将其用于欺诈、冒充、诽谤、深度伪造等恶意目的
-
-### 法律责任
-
+- 生成的音频由 AI 模型自动产生，可能包含不准确的内容
+- **未经他人同意克隆或使用其声音，可能侵犯肖像权和公开权**
 - 开发者对使用本软件所造成的任何损害不承担责任
-- 因非法使用而产生的所有法律责任由用户承担
-- 本软件按"现状"提供，不提供任何保证
+
+---
 
 ## 致谢
 
-- 原始开发者：[Alibaba Cloud Qwen Team](https://github.com/QwenLM)
-- 原始仓库：[QwenLM/Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS)
-
-## 引用
-
-引用原版Qwen3-TTS：
-
-```BibTeX
-@article{Qwen3-TTS,
-  title={Qwen3-TTS Technical Report},
-  author={Hangrui Hu and Xinfa Zhu and Ting He and Dake Guo and Bin Zhang and Xiong Wang and Zhifang Guo and Ziyue Jiang and Hongkun Hao and Zishan Guo and Xinyu Zhang and Pei Zhang and Baosong Yang and Jin Xu and Jingren Zhou and Junyang Lin},
-  journal={arXiv preprint arXiv:2601.15621},
-  year={2026}
-}
-```
+- 原始 Qwen3-TTS：[Alibaba Cloud Qwen Team](https://github.com/QwenLM)
+- Windows 移植基础：[Qwen3-TTS-JP](https://github.com/hiroki-abe-58/Qwen3-TTS-JP) by hiroki-abe-58
