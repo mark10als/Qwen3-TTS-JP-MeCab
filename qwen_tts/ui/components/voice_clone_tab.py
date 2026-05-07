@@ -14,6 +14,14 @@ import torch
 
 from ..i18n_utils import t, t_list
 from ..model_manager import ModelManager
+from .preprocess_block import (
+    create_preprocess_block,
+    wire_jp_detection,
+    run_preprocess,
+    preprocess_text_only,
+    generate_audio_with_silence,
+    accent_only,
+)
 
 # ============================================================================
 # Whisper integration (lazy-loaded)
@@ -269,6 +277,9 @@ def create_voice_clone_tab(
                             step=0.1,
                             interactive=True,
                         )
+                    # ---- MeCab + pyopenjtalk-plus 前処理 ----
+                    use_preprocess, analyze_btn, converted_text_out, accent_out, silence_sec = \
+                        create_preprocess_block()
                     btn = gr.Button(
                         t("voice_clone.generate_button"),
                         variant="primary",
@@ -314,54 +325,89 @@ def create_voice_clone_tab(
 
             # Event: Generate
             def run_voice_clone(
-                ref_aud, ref_txt: str, use_xvec: bool, text: str, lang_disp: str, speed: float
+                ref_aud, ref_txt: str, use_xvec: bool,
+                text: str, lang_disp: str, speed: float,
+                use_preprocess: bool, converted_text_in: str, silence_sec: float,
             ):
+                converted_display = ""
+                accent_display    = ""
                 try:
                     if not text or not text.strip():
                         return (
                             None,
                             f"{t('messages.error')}: {t('messages.enter_synthesis_text')}",
+                            "", "",
                         )
                     at = _audio_to_tuple(ref_aud)
                     if at is None:
                         return (
                             None,
                             f"{t('messages.error')}: {t('messages.upload_reference_audio')}",
+                            "", "",
                         )
                     if (not use_xvec) and (not ref_txt or not ref_txt.strip()):
                         return (
                             None,
                             f"{t('messages.error')}: {t('messages.reference_text_required')}",
+                            "", "",
                         )
 
-                    # Lazy-load base model for voice clone
-                    tts = manager.get_model("base")
+                    # ---- MeCab + pyopenjtalk-plus 前処理 ----
+                    # ユーザーが「変換後テキスト」を編集している場合はその内容を優先
+                    if use_preprocess and converted_text_in and converted_text_in.strip():
+                        text_for_tts = converted_text_in.strip()
+                        converted_display = converted_text_in.strip()
+                        accent_display = accent_only(converted_text_in)
+                    else:
+                        converted_display, accent_display = run_preprocess(text, use_preprocess)
+                        text_for_tts = converted_display if converted_display else text.strip()
 
+                    # ---- 音声生成（無音挿入対応）----
+                    tts = manager.get_model("base")
                     language = lang_map.get(lang_disp, "Auto")
-                    kwargs = gen_kwargs_fn()
-                    start = time.time()
-                    wavs, sr = tts.generate_voice_clone(
-                        text=text.strip(),
-                        language=language,
-                        ref_audio=at,
-                        ref_text=(ref_txt.strip() if ref_txt else None),
-                        x_vector_only_mode=bool(use_xvec),
-                        **kwargs,
-                    )
+                    kwargs   = gen_kwargs_fn()
+                    start    = time.time()
+
+                    def _gen_one(seg_text):
+                        return tts.generate_voice_clone(
+                            text=seg_text,
+                            language=language,
+                            ref_audio=at,
+                            ref_text=(ref_txt.strip() if ref_txt else None),
+                            x_vector_only_mode=bool(use_xvec),
+                            **kwargs,
+                        )
+
+                    wav, sr = generate_audio_with_silence(_gen_one, text_for_tts, silence_sec or 0.0)
                     elapsed = time.time() - start
 
-                    wav = np.asarray(wavs[0], dtype=np.float32)
                     wav, sr = _adjust_speed(wav, sr, speed)
-                    return (sr, wav), t("messages.generated_detail", elapsed=elapsed)
+                    return (sr, wav), t("messages.generated_detail", elapsed=elapsed), converted_display, accent_display
                 except Exception as e:
                     import traceback
                     traceback.print_exc()
-                    return None, f"{type(e).__name__}: {e}"
+                    return None, f"{type(e).__name__}: {e}", converted_display, accent_display
 
+            # Event: 変換と解析ボタン（チェックボックスの状態に関係なく常に実行）
+            analyze_btn.click(
+                fn=lambda text: run_preprocess(text, True),
+                inputs=[text_in],
+                outputs=[converted_text_out, accent_out],
+            )
+
+            # Event: 生成ボタン
             btn.click(
                 run_voice_clone,
-                inputs=[ref_audio, ref_text, xvec_only, text_in, lang_in, speed_in],
-                outputs=[audio_out, status_out],
+                inputs=[ref_audio, ref_text, xvec_only, text_in, lang_in, speed_in,
+                        use_preprocess, converted_text_out, silence_sec],
+                outputs=[audio_out, status_out, converted_text_out, accent_out],
+            )
+
+            # Event: 日本語検出 → 前処理コントロールを有効化＋自動変換
+            wire_jp_detection(
+                text_in, lang_in, lang_map,
+                use_preprocess, analyze_btn, silence_sec,
+                converted_out=converted_text_out, accent_out=accent_out,
             )
 
         # ---- Sub-tab 2: Save / Load Prompt ----

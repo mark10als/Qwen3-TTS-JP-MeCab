@@ -29,8 +29,10 @@ except ImportError:
 try:
     import pyopenjtalk
     OPENJTALK_AVAILABLE = True
-except ImportError:
+    print(f"[INFO] pyopenjtalk-plus 読み込み完了")
+except Exception as _ojt_err:
     OPENJTALK_AVAILABLE = False
+    print(f"[WARNING] pyopenjtalk-plus 読み込み失敗: {type(_ojt_err).__name__}: {_ojt_err}")
 
 
 # ══════════════════════════════════════════════════════════════
@@ -114,6 +116,7 @@ def _extract_phrase_info(labels):
 
     A フィールド書式: /A:accent_type+mora_pos+mora_count/
     mora_pos が 1 にリセットされたタイミングで新フレーズ開始と判定する。
+    A フィールドが 'xx' の場合はスキップして次のラベルを処理する。
     """
     phrases = []
     last_mora_pos = -1
@@ -121,15 +124,23 @@ def _extract_phrase_info(labels):
     for label in labels:
         if not label.strip():
             continue
-        if "-sil" in label or "-pau" in label:
+
+        # 現在音素を取得してサイレンス判定
+        p_part = label.split("/")[0]
+        try:
+            current_phone = p_part.split("-")[1].split("+")[0]
+        except (IndexError, AttributeError):
+            continue
+        if current_phone in ("sil", "pau", "xx", ""):
             last_mora_pos = -1
             continue
 
-        m = re.search(r"/A:(\d+)\+(\d+)\+(\d+)/", label)
+        # A フィールドは数値のみ受け付ける（xx は無視）
+        m = re.search(r"/A:(-?\d+)\+(\d+)\+(\d+)/", label)
         if not m:
             continue
 
-        accent_type = int(m.group(1))
+        accent_type = max(0, int(m.group(1)))
         mora_pos    = int(m.group(2))
         mora_count  = int(m.group(3))
 
@@ -207,6 +218,19 @@ class TTSPreprocessor:
 
     # ── 辞書 ──────────────────────────────────────────────
 
+    def apply_user_dict_only(self, text: str) -> str:
+        """
+        ユーザー辞書の読み置換のみを適用する（pyopenjtalk の g2p 変換は行わない）。
+
+        アクセント解析用途で使用。漢字はそのまま残し、登録済み固有名詞の
+        表記だけ読み仮名に置換することで、MeCab の単語境界解析を正確に保つ。
+        """
+        result = text
+        for key in sorted(self.user_dict, key=len, reverse=True):
+            if key in result:
+                result = result.replace(key, self.user_dict[key]["reading"])
+        return result
+
     def _load_user_dict(self, path):
         if not os.path.exists(path):
             return {}
@@ -229,10 +253,18 @@ class TTSPreprocessor:
 
     # ── Pass 1: MeCab 形態素解析 ───────────────────────────
 
-    def _create_tagger(self):
-        if os.path.exists(MECAB_DIC_DIR):
-            return MeCab.Tagger(f"-d {MECAB_DIC_DIR}")
-        return MeCab.Tagger()
+    def _create_tagger(self, user_dic: str = None):
+        """
+        MeCab Tagger を作成する。
+        Windows の "Program Files" パス（スペース含む）問題を避けるため引数なしで初期化。
+        user_dic が指定された場合は -u オプションでユーザー辞書を追加。
+        """
+        try:
+            if user_dic and os.path.exists(user_dic):
+                return MeCab.Tagger(f'-u "{user_dic}"')
+            return MeCab.Tagger()
+        except Exception:
+            return MeCab.Tagger()
 
     def analyze_text(self, text):
         """
@@ -382,6 +414,197 @@ class TTSPreprocessor:
             print(f"  アクセント解析エラー: {e}")
 
         print("=" * 60)
+
+
+# ══════════════════════════════════════════════════════════════
+#  全文アクセント記号付き文字列
+# ══════════════════════════════════════════════════════════════
+
+def get_full_accent_text(text: str) -> str:
+    """
+    テキスト全体のアクセント記号付きひらがな文字列を返す。
+    アクセント句が検出できない場合はひらがな読みのみを返す。
+    """
+    if not OPENJTALK_AVAILABLE:
+        return ""
+    try:
+        kana_all = _katakana_to_hiragana(pyopenjtalk.g2p(text, kana=True))
+    except Exception:
+        return ""
+    try:
+        phrases = get_accent_phrases(text)
+        if phrases:
+            return "　".join(p["marked_kana"] for p in phrases)
+        return kana_all
+    except Exception:
+        return kana_all
+
+
+# 除去する括弧類（アクセント解析前に除去してフレーズ分割を防ぐ）
+_JP_BRACKETS = re.compile(r'[「」『』【】〔〕〈〉《》]')
+
+
+def get_accent_text_with_user_dict(original_text: str, user_dict: dict = None) -> str:
+    """
+    user_dict を考慮した正確なアクセント記号付きテキストを生成する。
+
+    元のテキスト（漢字混じり）を user_dict キーで分割し:
+      - user_dict エントリ … accent_type を直接使ってアクセントマーク生成
+      - それ以外のセグメント … pyopenjtalk（MeCab）で解析
+    「」などの括弧類は除去してから pyopenjtalk に渡す。
+    """
+    if not OPENJTALK_AVAILABLE or not original_text.strip():
+        return ""
+
+    if not user_dict:
+        return get_full_accent_text(original_text)
+
+    # ① user_dict キーを長い順にソート（最長マッチ優先）
+    sorted_keys = sorted(user_dict.keys(), key=len, reverse=True)
+
+    # ② テキストを user_dict キー位置で分割
+    segments = []   # [(text, is_dict_word, key_or_None), ...]
+    remaining = original_text
+
+    while remaining:
+        earliest_idx = len(remaining)
+        earliest_key = None
+
+        for key in sorted_keys:
+            idx = remaining.find(key)
+            if 0 <= idx < earliest_idx:
+                earliest_idx = idx
+                earliest_key = key
+
+        if earliest_key is None:
+            segments.append((remaining, False, None))
+            break
+
+        if earliest_idx > 0:
+            segments.append((remaining[:earliest_idx], False, None))
+        segments.append((
+            remaining[earliest_idx : earliest_idx + len(earliest_key)],
+            True, earliest_key,
+        ))
+        remaining = remaining[earliest_idx + len(earliest_key):]
+
+    # ③ 各セグメントを処理して結合
+    result_parts = []
+
+    for seg_text, is_dict, key in segments:
+        if is_dict:
+            entry       = user_dict[key]
+            reading     = entry.get("reading", "")
+            accent_type = int(entry.get("accent_type", 0))
+            if reading:
+                result_parts.append(_mark_accent(reading, accent_type))
+        else:
+            # 括弧類を除去してから pyopenjtalk に渡す
+            clean = _JP_BRACKETS.sub("", seg_text).strip()
+            if clean:
+                try:
+                    part = get_full_accent_text(clean)
+                    if part:
+                        result_parts.append(part)
+                except Exception:
+                    pass
+
+    return "　".join(p for p in result_parts if p)
+
+
+# ══════════════════════════════════════════════════════════════
+#  MeCab アクセント辞書を使ったアクセント解析
+#  （mecab_accent_tool.py でコンパイルした .dic を使用）
+# ══════════════════════════════════════════════════════════════
+
+def get_accent_from_mecab_dic(text: str, user_dic_path: str = None) -> str:
+    """
+    MeCab + アクセント辞書（.dic）でテキストを解析し、
+    アクセント記号付きひらがな文字列を返す。
+
+    - .dic に登録された単語: 14番目フィールド（accent_type）を直接使用
+    - 未登録の単語:          pyopenjtalk でアクセント予測（利用可能な場合）
+
+    Args:
+        text:          解析対象テキスト
+        user_dic_path: mecab_accent.dic のパス（None の場合は標準 MeCab のみ）
+
+    Returns:
+        str: 「　」区切りのアクセント記号付きひらがな（例: "で↑んのし↓ん　で↑す"）
+             MeCab が利用できない場合は空文字列
+    """
+    if not MECAB_AVAILABLE or not text or not text.strip():
+        return ""
+
+    # MeCab Tagger 作成（引数なしでシステムデフォルト辞書を使用）
+    try:
+        if user_dic_path and os.path.exists(user_dic_path):
+            tagger = MeCab.Tagger(f'-u "{user_dic_path}"')
+        else:
+            tagger = MeCab.Tagger()
+    except Exception as e:
+        print(f"[ERROR] MeCab Tagger 初期化失敗: {e}")
+        return ""
+
+    node = tagger.parseToNode(text)
+    morphemes = []
+
+    while node:
+        surface = node.surface
+        if not surface:
+            node = node.next
+            continue
+        feats  = node.feature.split(",")
+        pos    = feats[0] if feats else "?"
+        if pos in ("BOS/EOS",):
+            node = node.next
+            continue
+        # 読み（カタカナ → ひらがな）
+        reading = feats[7] if len(feats) >= 8 and feats[7] not in ("*", "") else None
+        # 14番目フィールド（index 13）= アクセント型
+        accent_from_dic = None
+        if len(feats) >= 14 and feats[13].lstrip("-").isdigit():
+            accent_from_dic = max(0, int(feats[13]))
+        morphemes.append({
+            "surface":     surface,
+            "reading":     reading,
+            "accent_type": accent_from_dic,
+        })
+        node = node.next
+
+    if not morphemes:
+        return ""
+
+    # 各形態素のアクセント記号付き読みを生成
+    result_parts = []
+    for m in morphemes:
+        reading = m["reading"]
+        if not reading:
+            # 読みなし → 表層形そのまま
+            result_parts.append(m["surface"])
+            continue
+
+        reading_hira = _katakana_to_hiragana(reading)
+
+        if m["accent_type"] is not None:
+            # MeCab 辞書にアクセント型あり → 直接使用
+            result_parts.append(_mark_accent(reading_hira, m["accent_type"]))
+        elif OPENJTALK_AVAILABLE:
+            # アクセント型なし → pyopenjtalk で予測
+            try:
+                labels   = pyopenjtalk.extract_fullcontext(reading_hira)
+                phrases  = _extract_phrase_info(labels)
+                if phrases:
+                    accent_type, _ = phrases[0]
+                    result_parts.append(_mark_accent(reading_hira, accent_type))
+                else:
+                    result_parts.append(reading_hira)
+            except Exception:
+                result_parts.append(reading_hira)
+        else:
+            result_parts.append(reading_hira)
+
+    return "　".join(result_parts)
 
 
 # ══════════════════════════════════════════════════════════════

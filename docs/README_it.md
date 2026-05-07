@@ -1,4 +1,4 @@
-[English](../README.md) | [日本語](README_ja.md) | [中文](README_zh.md) | [한국어](README_ko.md) | [Русский](README_ru.md) | [Español](README_es.md) | **Italiano** | [Deutsch](README_de.md) | [Français](README_fr.md) | [Português](README_pt.md)
+[English](README_en.md) | [日本語](../README.md) | [中文](README_zh.md) | [한국어](README_ko.md) | [Русский](README_ru.md) | [Español](README_es.md) | **Italiano** | [Deutsch](README_de.md) | [Français](README_fr.md) | [Português](README_pt.md)
 
 # Qwen3-TTS-JP
 

@@ -9,6 +9,14 @@ import numpy as np
 
 from ..i18n_utils import t, t_dict
 from ..model_manager import ModelManager
+from .preprocess_block import (
+    create_preprocess_block,
+    wire_jp_detection,
+    run_preprocess,
+    preprocess_text_only,
+    generate_audio_with_silence,
+    accent_only,
+)
 
 # Emotion -> English instruction mapping for the instruct parameter
 EMOTION_INSTRUCTIONS = {
@@ -119,6 +127,8 @@ def create_custom_voice_tab(
                 placeholder=t("custom_voice.instruction_input.placeholder"),
                 interactive=True,
             )
+            # ---- MeCab + pyopenjtalk-plus 前処理 ----
+            use_preprocess, analyze_btn, converted_out, accent_out, silence_sec = create_preprocess_block()
             btn = gr.Button(
                 t("custom_voice.generate_button"),
                 variant="primary",
@@ -136,16 +146,27 @@ def create_custom_voice_tab(
         emotion_disp: str,
         speed: float,
         custom_instruct: str,
+        use_preprocess: bool,
+        converted_text_in: str,
+        silence_sec: float,
     ):
+        converted_display = ""
+        accent_display    = ""
         try:
             if not text or not text.strip():
-                return None, f"{t('messages.error')}: {t('messages.enter_text')}"
+                return None, f"{t('messages.error')}: {t('messages.enter_text')}", "", ""
             if not spk_disp:
-                return None, f"{t('messages.error')}: {t('messages.select_speaker')}"
+                return None, f"{t('messages.error')}: {t('messages.select_speaker')}", "", ""
 
-            # Lazy-load custom_voice model if needed
+            if use_preprocess and converted_text_in and converted_text_in.strip():
+                text_for_tts = converted_text_in.strip()
+                converted_display = converted_text_in.strip()
+                accent_display = accent_only(converted_text_in)
+            else:
+                converted_display, accent_display = run_preprocess(text, use_preprocess)
+                text_for_tts = converted_display if converted_display else text.strip()
+
             tts = manager.get_model("custom_voice")
-
             language = lang_map.get(lang_disp, "Auto")
             speaker = spk_map.get(spk_disp, spk_disp)
             emotion_key = _emotion_display_to_key(emotion_disp)
@@ -153,25 +174,43 @@ def create_custom_voice_tab(
 
             kwargs = gen_kwargs_fn()
             start = time.time()
-            wavs, sr = tts.generate_custom_voice(
-                text=text.strip(),
-                language=language,
-                speaker=speaker,
-                instruct=instruct,
-                **kwargs,
-            )
+
+            def _gen_one(seg_text):
+                return tts.generate_custom_voice(
+                    text=seg_text,
+                    language=language,
+                    speaker=speaker,
+                    instruct=instruct,
+                    **kwargs,
+                )
+
+            wav, sr = generate_audio_with_silence(_gen_one, text_for_tts, silence_sec or 0.0)
             elapsed = time.time() - start
 
-            wav = np.asarray(wavs[0], dtype=np.float32)
             wav, sr = _adjust_speed(wav, sr, speed)
-            return (sr, wav), t("messages.generated_detail", elapsed=elapsed)
+            return (sr, wav), t("messages.generated_detail", elapsed=elapsed), converted_display, accent_display
         except Exception as e:
             import traceback
             traceback.print_exc()
-            return None, f"{type(e).__name__}: {e}"
+            return None, f"{type(e).__name__}: {e}", converted_display, accent_display
+
+    # Event: 変換と解析ボタン（チェックボックスの状態に関係なく常に実行）
+    analyze_btn.click(
+        fn=lambda text: run_preprocess(text, True),
+        inputs=[text_in],
+        outputs=[converted_out, accent_out],
+    )
 
     btn.click(
         run_custom_voice,
-        inputs=[text_in, spk_in, lang_in, emotion_in, speed_in, instruct_in],
-        outputs=[audio_out, status_out],
+        inputs=[text_in, spk_in, lang_in, emotion_in, speed_in, instruct_in,
+                use_preprocess, converted_out, silence_sec],
+        outputs=[audio_out, status_out, converted_out, accent_out],
+    )
+
+    # Event: 日本語検出 → 前処理コントロールを有効化＋自動変換
+    wire_jp_detection(
+        text_in, lang_in, lang_map,
+        use_preprocess, analyze_btn, silence_sec,
+        converted_out=converted_out, accent_out=accent_out,
     )
