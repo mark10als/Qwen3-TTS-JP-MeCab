@@ -1,0 +1,6 @@
+torch
+soundfile
+qwen_tts
+pyopenjtalk-plus
+# DNN アクセント予測を使う場合は marine も追加
+# marine

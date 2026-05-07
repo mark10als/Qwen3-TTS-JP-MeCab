@@ -1,0 +1,68 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+.cursor/
+
+# Environment variables
+.env
+
+# Generated audio files
+*.wav
+*.mp3
+
+# Voice clone prompt files
+voice_clone_prompt_*.pt
+
+# Model weights
+*.safetensors
+*.bin
+*.ckpt
+*.pth
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+tmp/
+temp/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# pytest/mypy
+.pytest_cache/
+.mypy_cache/
+.coverage

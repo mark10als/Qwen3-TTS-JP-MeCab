@@ -1,0 +1,14 @@
+global-exclude *
+
+recursive-include qwen_tts *.py *.pyi py.typed
+recursive-include qwen_tts *.npz
+recursive-include qwen_tts *.json
+
+include LICENSE
+include MANIFEST.in
+include pyproject.toml
+
+prune assets
+prune examples
+prune finetuning
+prune qwen_tts.egg-info
