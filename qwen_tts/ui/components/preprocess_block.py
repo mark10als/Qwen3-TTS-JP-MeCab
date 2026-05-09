@@ -56,7 +56,8 @@ except Exception as _pre_err:
 _JP_RE = re.compile(r"[぀-鿿ｦ-￯]")
 
 # 文末記号で分割（記号は直前の文に残す）
-_SENTENCE_END_RE = re.compile(r"(?<=[。！？])")
+# 全角・半角の疑問符・感嘆符・句点を対象とする
+_SENTENCE_END_RE = re.compile(r"(?<=[。！？?])")
 
 # 無音マーカー
 _ELLIPSIS_MARKER = "……"
@@ -122,6 +123,13 @@ def run_preprocess(text: str, use_preprocess: bool = True):
     except Exception as ae:
         print(f"[PREPROCESS ERROR] アクセント解析失敗: {ae}")
         accent_display = f"アクセント解析エラー: {ae}"
+
+    # 疑問文（末尾が ? または ？）はアクセント表示の末尾に ↑ を追加して上昇イントネーションを明示
+    orig = text.strip()
+    if orig.endswith(("?", "？")):
+        if accent_display and not accent_display.rstrip().endswith("↑"):
+            accent_display = accent_display.rstrip() + "↑"
+            print(f"[PREPROCESS] 疑問文を検出: アクセント表示末尾に ↑ を追加")
 
     return converted, accent_display
 

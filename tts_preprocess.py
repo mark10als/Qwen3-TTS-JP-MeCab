@@ -381,6 +381,15 @@ class TTSPreprocessor:
         elif verbose:
             print("  ⚠️  pyopenjtalk-plus が利用できません。ユーザー辞書適用のみ実施")
 
+        # Step 3: 疑問文の末尾「?」「？」を保持してTTSへ上昇イントネーションを伝える
+        # pyopenjtalk.g2p() は句読点を除去するため、元テキストが疑問符で終わる場合に「？」を再付与する
+        orig_stripped = text.strip() if text else ""
+        if orig_stripped.endswith(("?", "？")):
+            if not result.endswith("？"):
+                result = result.rstrip() + "？"
+            if verbose:
+                print("  ✅  疑問文を検出: TTS用テキスト末尾に「？」を保持")
+
         if verbose:
             print(f"  変換結果: 「{result}」")
             print("=" * 60)
