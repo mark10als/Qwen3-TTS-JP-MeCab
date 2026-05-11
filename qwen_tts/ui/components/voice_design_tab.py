@@ -121,23 +121,37 @@ def create_voice_design_tab(
         text: str, lang_disp: str, design: str, speed: float,
         use_preprocess: bool, converted_text_in: str, accent_in: str, silence_sec: float,
     ):
+        """
+        アクセント記号付き読み欄が空欄 → 変換と解析を実行（処理中アニメーション表示）してから音声生成
+        アクセント記号付き読み欄に内容あり → 変換済み（手動修正の可能性あり）、アニメーションなしで音声生成のみ
+        """
         converted_display = ""
         accent_display    = ""
         try:
             if not text or not text.strip():
-                return None, f"{t('messages.error')}: {t('messages.enter_text')}", "", ""
+                yield None, f"{t('messages.error')}: {t('messages.enter_text')}", "", ""
+                return
             if not design or not design.strip():
-                return None, f"{t('messages.error')}: {t('messages.enter_voice_description')}", "", ""
+                yield None, f"{t('messages.error')}: {t('messages.enter_voice_description')}", "", ""
+                return
 
-            # アクセント記号付き読み欄に内容がある場合は「変換と解析」が実施済み
-            # （ユーザーが手動修正した可能性もある）→ 再実行せずそのまま使用
+            # ---- MeCab + pyopenjtalk-plus 前処理 ----
             if use_preprocess and accent_in and accent_in.strip():
+                # アクセント欄に内容あり → 変換済み（手動修正の可能性あり）
+                # アニメーションなし・テキストのみ表示、再実行せずそのまま使用
                 text_for_tts = converted_text_in.strip() if converted_text_in else text.strip()
                 converted_display = converted_text_in.strip() if converted_text_in else ""
                 accent_display = accent_in.strip()
             else:
+                # アクセント欄が空 → 変換と解析が必要
+                if use_preprocess:
+                    # 前処理が必要な場合のみ処理中アニメーション表示
+                    yield None, "⏳ 変換・解析中...", "🔄 変換中...", "🔄 解析中..."
                 converted_display, accent_display = run_preprocess(text, use_preprocess)
                 text_for_tts = converted_display if converted_display else text.strip()
+                if use_preprocess and converted_display:
+                    # 前処理結果を表示してから音声生成へ
+                    yield None, "⏳ 音声生成中...", converted_display, accent_display
 
             tts = manager.get_model("voice_design")
             language = lang_map.get(lang_disp, "Auto")
@@ -156,11 +170,11 @@ def create_voice_design_tab(
             elapsed = time.time() - start
 
             wav, sr = _adjust_speed(wav, sr, speed)
-            return (sr, wav), t("messages.generated_detail", elapsed=elapsed), converted_display, accent_display
+            yield (sr, wav), t("messages.generated_detail", elapsed=elapsed), converted_display, accent_display
         except Exception as e:
             import traceback
             traceback.print_exc()
-            return None, f"{type(e).__name__}: {e}", converted_display, accent_display
+            yield None, f"{type(e).__name__}: {e}", converted_display, accent_display
 
     # Event: 変換と解析ボタン（チェックボックスの状態に関係なく常に実行）
     analyze_btn.click(
