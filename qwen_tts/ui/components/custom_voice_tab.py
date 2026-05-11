@@ -172,6 +172,8 @@ def create_custom_voice_tab(
                 text_for_tts = converted_text_in.strip() if converted_text_in else text.strip()
                 converted_display = converted_text_in.strip() if converted_text_in else ""
                 accent_display = accent_in.strip()
+                # テキスト欄を即時更新してアニメーションを防ぐ（アクセント欄に内容あり = 変換済み）
+                yield None, "⏳ 音声生成中...", converted_display, accent_display
             else:
                 # アクセント欄が空 → 変換と解析が必要
                 if use_preprocess:
