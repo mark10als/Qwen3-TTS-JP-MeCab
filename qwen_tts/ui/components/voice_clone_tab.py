@@ -327,7 +327,7 @@ def create_voice_clone_tab(
             def run_voice_clone(
                 ref_aud, ref_txt: str, use_xvec: bool,
                 text: str, lang_disp: str, speed: float,
-                use_preprocess: bool, converted_text_in: str, silence_sec: float,
+                use_preprocess: bool, converted_text_in: str, accent_in: str, silence_sec: float,
             ):
                 converted_display = ""
                 accent_display    = ""
@@ -353,11 +353,12 @@ def create_voice_clone_tab(
                         )
 
                     # ---- MeCab + pyopenjtalk-plus 前処理 ----
-                    # ユーザーが「変換後テキスト」を編集している場合はその内容を優先
-                    if use_preprocess and converted_text_in and converted_text_in.strip():
-                        text_for_tts = converted_text_in.strip()
-                        converted_display = converted_text_in.strip()
-                        accent_display = accent_only(converted_text_in)
+                    # アクセント記号付き読み欄に内容がある場合は「変換と解析」が実施済み
+                    # （ユーザーが手動修正した可能性もある）→ 再実行せずそのまま使用
+                    if use_preprocess and accent_in and accent_in.strip():
+                        text_for_tts = converted_text_in.strip() if converted_text_in else text.strip()
+                        converted_display = converted_text_in.strip() if converted_text_in else ""
+                        accent_display = accent_in.strip()
                     else:
                         converted_display, accent_display = run_preprocess(text, use_preprocess)
                         text_for_tts = converted_display if converted_display else text.strip()
@@ -399,7 +400,7 @@ def create_voice_clone_tab(
             btn.click(
                 run_voice_clone,
                 inputs=[ref_audio, ref_text, xvec_only, text_in, lang_in, speed_in,
-                        use_preprocess, converted_text_out, silence_sec],
+                        use_preprocess, converted_text_out, accent_out, silence_sec],
                 outputs=[audio_out, status_out, converted_text_out, accent_out],
             )
 

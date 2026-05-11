@@ -119,7 +119,7 @@ def create_voice_design_tab(
 
     def run_voice_design(
         text: str, lang_disp: str, design: str, speed: float,
-        use_preprocess: bool, converted_text_in: str, silence_sec: float,
+        use_preprocess: bool, converted_text_in: str, accent_in: str, silence_sec: float,
     ):
         converted_display = ""
         accent_display    = ""
@@ -129,10 +129,12 @@ def create_voice_design_tab(
             if not design or not design.strip():
                 return None, f"{t('messages.error')}: {t('messages.enter_voice_description')}", "", ""
 
-            if use_preprocess and converted_text_in and converted_text_in.strip():
-                text_for_tts = converted_text_in.strip()
-                converted_display = converted_text_in.strip()
-                accent_display = accent_only(converted_text_in)
+            # アクセント記号付き読み欄に内容がある場合は「変換と解析」が実施済み
+            # （ユーザーが手動修正した可能性もある）→ 再実行せずそのまま使用
+            if use_preprocess and accent_in and accent_in.strip():
+                text_for_tts = converted_text_in.strip() if converted_text_in else text.strip()
+                converted_display = converted_text_in.strip() if converted_text_in else ""
+                accent_display = accent_in.strip()
             else:
                 converted_display, accent_display = run_preprocess(text, use_preprocess)
                 text_for_tts = converted_display if converted_display else text.strip()
@@ -169,7 +171,7 @@ def create_voice_design_tab(
 
     btn.click(
         run_voice_design,
-        inputs=[text_in, lang_in, design_in, speed_in, use_preprocess, converted_out, silence_sec],
+        inputs=[text_in, lang_in, design_in, speed_in, use_preprocess, converted_out, accent_out, silence_sec],
         outputs=[audio_out, status_out, converted_out, accent_out],
     )
 
